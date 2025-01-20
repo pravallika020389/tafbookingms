@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -12,10 +13,10 @@ import java.time.LocalDateTime;
 public class BookingsDTO {
 
     private Long id;
-    private UsersDTO users;
-    private FlightsDTO flights;
+    private Long users_id;
+    private Long flights_id;
     private String status; // e.g., Booked, Cancelled
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDate createdAt;
+    private LocalDate updatedAt;
 }
 

@@ -1,16 +1,22 @@
 package com.tekarchflightsbooking.tafbookingms.service;
 
 
+import com.tekarchflightsbooking.tafbookingms.models.Bookings;
 import com.tekarchflightsbooking.tafbookingms.models.BookingsDTO;
 import com.tekarchflightsbooking.tafbookingms.models.FlightsDTO;
 import com.tekarchflightsbooking.tafbookingms.models.UsersDTO;
 import com.tekarchflightsbooking.tafbookingms.service.interfaces.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
 
 @Service
 public class BookingServiceImp implements BookingService {
@@ -21,30 +27,113 @@ public class BookingServiceImp implements BookingService {
     @Value("${datastore.booking.service.url}")
     private String dataStore_Booking_Url;
 
-    @Value("${datastore.user.service.url}")
-    private String dataStore_User_Url;
+    @Value("${user.service.url}")
+    private String user_Url;
 
-    @Value("${datastore.flight.service.url}")
-    private String dataStore_Flight_Url;
+    @Value("${flight.service.url}")
+    private String flight_Url;
 
 
-    public ResponseEntity<Object> addBooking(BookingsDTO booking) {
-
-        UsersDTO user = restTemplate.getForObject(dataStore_User_Url + booking.getUsers().getId(), UsersDTO.class);
-        FlightsDTO flight = restTemplate.getForObject(dataStore_Flight_Url + booking.getFlights().getId(), FlightsDTO.class);
-
-        if (user != null && flight != null) {
-            BookingsDTO receivedBooking =restTemplate.postForObject(dataStore_Booking_Url + "add" , booking , BookingsDTO.class);
-            return ResponseEntity.ok(receivedBooking);
-        } else if(user == null) {
-
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found " + booking.getUsers().getId());
-        }
-        else if(flight == null) {
-
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Flight not found " + booking.getFlights().getId());
-        }
-
-        //return restTemplate.postForObject(dataStore_Booking_Url + "add" , booking , BookingsDTO.class);
+    public void updateAvailability(Long flightId, FlightsDTO flight) {
+        flight.setAvailable_seats(flight.getAvailable_seats() - 1);
+        restTemplate.put(flight_Url + flightId, flight);
     }
+
+
+    public ResponseEntity<Object> addBooking(BookingsDTO receivedBooking) {
+        try {
+
+
+            Long userId = receivedBooking.getUsers_id();
+            Long flightId = receivedBooking.getFlights_id();
+
+            UsersDTO user = restTemplate.getForObject(user_Url + userId, UsersDTO.class);
+            FlightsDTO flight = restTemplate.getForObject(flight_Url + flightId, FlightsDTO.class);
+
+            if (user != null && flight != null) {
+                if (flight.getAvailable_seats() > 0) {
+                    Bookings booking = new Bookings();
+                    booking.setUsers(user);
+                    booking.setFlights(flight);
+                    booking.setStatus("Booked");
+                    BookingsDTO bookedDetails = restTemplate.postForObject(dataStore_Booking_Url + "book", booking, BookingsDTO.class);
+                    updateAvailability(flightId, flight);
+                    return ResponseEntity.status(HttpStatus.CREATED).body("Booked Successfully");
+
+                } else {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Flight with id " + flightId + " is full. Please check a different flight");
+
+                }
+
+            } else if (user == null) {
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User with id " + userId + " not found");
+            } else {
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Flight with id " + flightId + " not found");
+            }
+        } catch (Exception e) {
+            // Return error response with message and status code
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Booking creation failed: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<Object> getBookedDetailsById(Long bookingId) {
+        try {
+            Bookings booking = restTemplate.getForObject(dataStore_Booking_Url + bookingId, Bookings.class);
+            if (booking != null) {
+                BookingsDTO receivedBookeddetails = new BookingsDTO();
+                receivedBookeddetails.setId(booking.getId());
+                receivedBookeddetails.setUsers_id(booking.getUsers().getId());
+                receivedBookeddetails.setFlights_id(booking.getFlights().getId());
+                receivedBookeddetails.setStatus(booking.getStatus());
+                receivedBookeddetails.setCreatedAt(booking.getCreatedAt());
+                receivedBookeddetails.setUpdatedAt(booking.getUpdatedAt());
+
+                return ResponseEntity.ok(receivedBookeddetails);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Booking details with id " + bookingId + " is not found");
+            }
+        } catch (Exception e) {
+            // Return error response with message and status code
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Unable to retrieve details " + e.getMessage());
+
+        }
+    }
+
+    @Override
+    public List<Bookings> getBookedDetailsByUserId(Long userId) {
+        String url = dataStore_Booking_Url + "users/" + userId;
+
+//try{
+        ResponseEntity<List<Bookings>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<Bookings>>() {
+                }
+        );
+
+        return response.getBody();
+//}catch (Exception e) {
+//    // Return error response with message and status code
+//    return null;
+
+    }
+
+    @Override
+    public void cancelBookingsById(Long bookingId) {
+        try{
+            Bookings cancelledBooking = restTemplate.getForObject(dataStore_Booking_Url + bookingId, Bookings.class);
+            cancelledBooking.setStatus("Cancelled");
+            restTemplate.put(dataStore_Booking_Url + bookingId,cancelledBooking);
+        } catch (HttpClientErrorException e) {
+            System.out.println("Error: " + e.getStatusCode());
+        }
+    }
+
 }
+
