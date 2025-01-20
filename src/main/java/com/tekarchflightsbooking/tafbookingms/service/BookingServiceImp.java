@@ -3,8 +3,8 @@ package com.tekarchflightsbooking.tafbookingms.service;
 
 import com.tekarchflightsbooking.tafbookingms.models.Bookings;
 import com.tekarchflightsbooking.tafbookingms.models.BookingsDTO;
-import com.tekarchflightsbooking.tafbookingms.models.FlightsDTO;
-import com.tekarchflightsbooking.tafbookingms.models.UsersDTO;
+import com.tekarchflightsbooking.tafbookingms.models.Flights;
+import com.tekarchflightsbooking.tafbookingms.models.Users;
 import com.tekarchflightsbooking.tafbookingms.service.interfaces.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +34,7 @@ public class BookingServiceImp implements BookingService {
     private String flight_Url;
 
 
-    public void updateAvailability(Long flightId, FlightsDTO flight) {
+    public void updateAvailability(Long flightId, Flights flight) {
         flight.setAvailable_seats(flight.getAvailable_seats() - 1);
         restTemplate.put(flight_Url + flightId, flight);
     }
@@ -47,8 +47,8 @@ public class BookingServiceImp implements BookingService {
             Long userId = receivedBooking.getUsers_id();
             Long flightId = receivedBooking.getFlights_id();
 
-            UsersDTO user = restTemplate.getForObject(user_Url + userId, UsersDTO.class);
-            FlightsDTO flight = restTemplate.getForObject(flight_Url + flightId, FlightsDTO.class);
+            Users user = restTemplate.getForObject(user_Url + userId, Users.class);
+            Flights flight = restTemplate.getForObject(flight_Url + flightId, Flights.class);
 
             if (user != null && flight != null) {
                 if (flight.getAvailable_seats() > 0) {
@@ -126,10 +126,10 @@ public class BookingServiceImp implements BookingService {
 
     @Override
     public void cancelBookingsById(Long bookingId) {
-        try{
+        try {
             Bookings cancelledBooking = restTemplate.getForObject(dataStore_Booking_Url + bookingId, Bookings.class);
             cancelledBooking.setStatus("Cancelled");
-            restTemplate.put(dataStore_Booking_Url + bookingId,cancelledBooking);
+            restTemplate.put(dataStore_Booking_Url + bookingId, cancelledBooking);
         } catch (HttpClientErrorException e) {
             System.out.println("Error: " + e.getStatusCode());
         }

@@ -10,7 +10,7 @@ import java.time.LocalTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class FlightsDTO {
+public class Flights {
 
     private Long id;
     private String flight_number;

@@ -1,7 +1,6 @@
 package com.tekarchflightsbooking.tafbookingms.controllers;
 
 
-
 import com.tekarchflightsbooking.tafbookingms.models.Bookings;
 import com.tekarchflightsbooking.tafbookingms.models.BookingsDTO;
 import com.tekarchflightsbooking.tafbookingms.service.BookingServiceImp;
@@ -35,22 +34,21 @@ public class BookingController {
         return bookingService.getBookedDetailsByUserId(userId);
     }
 
-    @DeleteMapping ("/{bookingId}")
+    @DeleteMapping("/{bookingId}")
     public ResponseEntity<String> cancelBookingsById(@PathVariable("bookingId") Long id) {
 
 
-        ResponseEntity<Object> bookingDetails =bookingService.getBookedDetailsById(id);
+        ResponseEntity<Object> bookingDetails = bookingService.getBookedDetailsById(id);
 
-        if(bookingDetails.getStatusCode().is2xxSuccessful()){
+        if (bookingDetails.getStatusCode().is2xxSuccessful()) {
             try {
                 bookingService.cancelBookingsById(id);
                 return ResponseEntity.ok("Booking cancelled successfully");
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Failed to cancel booking ");
             }
-        }
-        else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Booking with id " +id + " not found");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Booking with id " + id + " not found");
         }
     }
 

@@ -10,9 +10,9 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UsersDTO {
+public class Users {
 private Long id;
-     private String username;
+   private String username;
    private String email;
    private String phoneNumber;
    private LocalDate createdAt;
