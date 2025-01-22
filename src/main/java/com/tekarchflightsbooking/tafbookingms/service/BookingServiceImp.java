@@ -39,11 +39,21 @@ public class BookingServiceImp implements BookingService {
         restTemplate.put(flight_Url + flightId, flight);
     }
 
+    public BookingsDTO convertToBookingDTO(Bookings booking) {
+        BookingsDTO receivedBookeddetails = new BookingsDTO();
+        receivedBookeddetails.setId(booking.getId());
+        receivedBookeddetails.setUsers_id(booking.getUsers().getId());
+        receivedBookeddetails.setFlights_id(booking.getFlights().getId());
+        receivedBookeddetails.setStatus(booking.getStatus());
+        receivedBookeddetails.setCreatedAt(booking.getCreatedAt());
+        receivedBookeddetails.setUpdatedAt(booking.getUpdatedAt());
+
+        return receivedBookeddetails;
+    }
+
 
     public ResponseEntity<Object> addBooking(BookingsDTO receivedBooking) {
         try {
-
-
             Long userId = receivedBooking.getUsers_id();
             Long flightId = receivedBooking.getFlights_id();
 
@@ -56,10 +66,12 @@ public class BookingServiceImp implements BookingService {
                     booking.setUsers(user);
                     booking.setFlights(flight);
                     booking.setStatus("Booked");
-                    BookingsDTO bookedDetails = restTemplate.postForObject(dataStore_Booking_Url + "book", booking, BookingsDTO.class);
+                    Bookings receivedBookedDetails = restTemplate.postForObject(dataStore_Booking_Url + "book", booking, Bookings.class);
                     updateAvailability(flightId, flight);
-                    return ResponseEntity.status(HttpStatus.CREATED).body("Booked Successfully");
-
+                    //   return ResponseEntity.status(HttpStatus.CREATED).body("Booked Successfully");
+                    //   return ResponseEntity.ok(receivedBookedDetails);
+                    BookingsDTO receivedBookedDetailsDTO = convertToBookingDTO(receivedBookedDetails);
+                    return ResponseEntity.ok(receivedBookedDetailsDTO);
                 } else {
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Flight with id " + flightId + " is full. Please check a different flight");
 
@@ -84,13 +96,8 @@ public class BookingServiceImp implements BookingService {
         try {
             Bookings booking = restTemplate.getForObject(dataStore_Booking_Url + bookingId, Bookings.class);
             if (booking != null) {
-                BookingsDTO receivedBookeddetails = new BookingsDTO();
-                receivedBookeddetails.setId(booking.getId());
-                receivedBookeddetails.setUsers_id(booking.getUsers().getId());
-                receivedBookeddetails.setFlights_id(booking.getFlights().getId());
-                receivedBookeddetails.setStatus(booking.getStatus());
-                receivedBookeddetails.setCreatedAt(booking.getCreatedAt());
-                receivedBookeddetails.setUpdatedAt(booking.getUpdatedAt());
+                BookingsDTO receivedBookeddetails = convertToBookingDTO(booking);
+
 
                 return ResponseEntity.ok(receivedBookeddetails);
             } else {
